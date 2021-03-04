@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Struct Name="app" Collapsed="true">
+    <Position X="14.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>gAACAIACAAAAABABAABBBAgAgYQACAAEAyAAgAAAQAA=</HashCode>
+      <FileName>app.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="executor" Collapsed="true">
+    <Position X="6" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>QAACAAAAAAAAAAAAAABEAAAAAAAAEAAAAAEAAEAAgAA=</HashCode>
+      <FileName>executor.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="hardware" Collapsed="true">
+    <Position X="16" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAkCAAABAACgAAAAAABAAAAAgAQAAgAAAAAAAAgAAIA=</HashCode>
+      <FileName>hardware.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="converser" Collapsed="true">
+    <Position X="9.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEgAgAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAA=</HashCode>
+      <FileName>im_executors.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="contraster" Collapsed="true">
+    <Position X="0.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAgAAAAAAAEAAAAABAAAAAAAgAAAAAKAAAAAAAAA=</HashCode>
+      <FileName>im_executors.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="filter" Collapsed="true">
+    <Position X="5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAEAAAAAA=</HashCode>
+      <FileName>im_executors.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="rotator" Collapsed="true">
+    <Position X="7.25" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAgAAEAAAAAAAQAAAAAAAAIAAAAAgIAAAAAAACAA=</HashCode>
+      <FileName>im_executors.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="wavelet" Collapsed="true">
+    <Position X="11.75" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAgAAgAAAAAAAAAAAQAAAAAAAAgAAAAAAAAAMAAA=</HashCode>
+      <FileName>im_executors.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="zoomer" Collapsed="true">
+    <Position X="2.75" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BAAAAgAAAAAAAAAAAAAAIAUAACAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>im_executors.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="im_object" Collapsed="true">
+    <Position X="17.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>CAEEIAAEAAAAAEBAAKBBCAAAABAAASAIAAAAgAEACCQ=</HashCode>
+      <FileName>im_object.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="im_values" Collapsed="true">
+    <Position X="14.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>RAAgBAQMACAAAAAAAAAIAAAAAAQEAAAAAAAAAAIAAAA=</HashCode>
+      <FileName>im_values.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="io_manager" Collapsed="true">
+    <Position X="16" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAgEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>io_manager.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="util" Collapsed="true">
+    <Position X="17.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAACAAAAAAAIAABAAAAAEEAAgAACAAAAAAA=</HashCode>
+      <FileName>util.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>
