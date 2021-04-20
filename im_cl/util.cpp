@@ -1,13 +1,6 @@
 #include"util.h"
 
-int util::power_2_arr[];
-
-int util::next_power(int val) {
-	for (int index = 0; index < POWER_TWO_MAX; ++index) {
-		if (power_2_arr[index] >= val) { return power_2_arr[index]; }
-	}
-	throw std::runtime_error("Too large number");
-}
+functions* util::kernels = nullptr;
 
 void util::assert_success(cl_int ret_code, const std::string& message) {
 	if (ret_code == CL_SUCCESS) { return; }
@@ -50,10 +43,10 @@ command util::next_action() {
 		std::istringstream iss(cmd);
 		std::vector<std::string> seq((is_it(iss)), is_it());
 		if (seq.empty()) { std::cout << "> "; continue; }
-		command spl_arg = { { "exe", seq[0] } };
+		command spl_arg = std::make_pair(seq[0], keys());
 		for (size_t p = 1; p < seq.size(); ++p) {
-			if (seq[p][0] == '-') { spl_arg.emplace(seq[p], seq[p + 1]); ++p; }
-			else { spl_arg.emplace(arg + free_arg++, seq[p]); }
+			if (seq[p][0] == '-') { spl_arg.second.emplace(seq[p], seq[p + 1]); p++; }
+			else { spl_arg.second.emplace(arg + free_arg++, seq[p]); }
 		}
 		return spl_arg;
 	}

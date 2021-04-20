@@ -1,34 +1,31 @@
 #include"im_executors.h"
 
-filter::filter(cl_context context, cl_command_queue queue, 
-	functions* filters) : executor(context, queue, filters) {}
+filter::filter(hardware* env, functions* filters) : executor(env, filters) {}
 
-im_ptr filter::gauss(float sigma, int lin_size, im_object& src) {
-	float divisor = sqrtf(2.0f * CL_M_PI_F) * sigma;
-	float exp_divisor = 2.0f * sigma * sigma;
-	int radius = (lin_size - 1) / 2; cl_int ret_code;
-	float* conv_kern = new float[lin_size];
-	for (int w = -radius; w <= radius; ++w) {
-		conv_kern[radius + w] = expf(-(w * w) / exp_divisor) / divisor;
+im_ptr filter::gauss(float sigma, int lin_size, im_ptr& src) {
+	float divisor = -2.0f * sigma * sigma;
+	float pi_div = 2.0f * sigma * sigma * CL_M_PI;
+	cl_int radius = (lin_size - 1) / 2;
+	float* conv_kern = new float[lin_size * lin_size];
+	for (int y = -radius, p = 0; y <= radius; ++y) {
+		for (int x = -radius; x <= radius; ++x, ++p) {
+			conv_kern[p] = expf((x * x + y * y) / divisor) / pi_div;
+		}
 	}
-	cl_mem kern_buf = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-		sizeof(float) * lin_size, conv_kern, &ret_code);
-	util::assert_success(ret_code, "Failed to create buffer");
+	cl_mem im_kernel = env->alloc_im({ lin_size, lin_size }, conv_kern, CL_A);
+	im_ptr result = convolve(im_kernel, src, radius);
+	clReleaseMemObject(im_kernel);
+	delete[] conv_kern;
+	return std::move(result);
+}
 
-	cl_kernel kern = kernels->at("horizontal_conv");
-	im_object temp(src.size, context, queue, NO_BUFFER_WRITE);
-	set_common_args(kern, src, temp, NO_BUFFER_WRITE);
-	ret_code = clSetKernelArg(kern, 6, sizeof(int), &radius);
-	ret_code |= clSetKernelArg(kern, 7, sizeof(cl_mem), &kern_buf);
-	cl_event horizontal = run_with_event(kern, temp.size);
-
-	kern = kernels->at("vertical_conv");
-	im_ptr result = std::make_shared<im_object>(temp.size, context, queue, WRITE_TO_BUFFER);
-	set_common_args(kern, temp, *result, WRITE_TO_BUFFER);
-	ret_code = clSetKernelArg(kern, 6, sizeof(int), &radius);
-	ret_code |= clSetKernelArg(kern, 7, sizeof(cl_mem), &kern_buf);
-
-	run_blocking(kern, temp.size, &horizontal);
-	clReleaseMemObject(kern_buf); delete[] conv_kern;
+im_ptr filter::convolve(cl_mem conv_kern, im_ptr& src, cl_int radius) {
+	cl_kernel kern = kernels->at("conv_2D");
+	im_ptr result = std::make_shared<im_object>(src->size, env);
+	cl_sampler sampler = env->samplers.at({ CL_ADDRESS_CLAMP_TO_EDGE, CL_FILTER_NEAREST });
+	cl_int ret_code = set_common_args(kern, src->cl_storage, sampler, result->cl_storage);
+	ret_code |= clSetKernelArg(kern, 3, sizeof(cl_int), &radius);
+	ret_code |= clSetKernelArg(kern, 4, sizeof(cl_mem), &conv_kern);
+	run_blocking(kern, src->size);
 	return std::move(result);
 }

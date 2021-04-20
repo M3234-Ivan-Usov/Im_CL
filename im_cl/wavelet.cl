@@ -1,77 +1,67 @@
 
 #define SIGN(x) ((x > 0.0f)? 1.0f : -1.0f)
 
-#define WAVELET_HORIZONTAL 0
-#define WAVELET_VERTICAL 1
+#define WAVELET_FORWARD 0
+#define WAVELET_INVERSE 1
 #define sqrt_2 (float4)(1.41421356237f);
 
 
-__kernel void direct_haar(__read_only image2d_t src,
-	__write_only image2d_t dst, sampler_t sampler, int2 cur_size, int dim) {
+__kernel void horizontal_haar(__read_only image2d_t src, sampler_t sampler,
+	__write_only image2d_t dst, int2 cur_sz, int direction) {
 
-	int2 out_coord = (int2) (get_global_id(0), get_global_id(1));
-	if (out_coord.x < cur_size.x && out_coord.y < cur_size.y) {
+	int in_x[2], out_x[2];
+	int y = get_global_id(1);
 
-		int2 pair_coord_1, pair_coord_2, out_coord_2;
-		if (dim == WAVELET_HORIZONTAL) {
-			pair_coord_1 = (int2)(2 * out_coord.x, out_coord.y);
-			pair_coord_2 = (int2)(pair_coord_1.x + 1, pair_coord_1.y);
-			out_coord_2 = (int2)(out_coord.x + cur_size.x, out_coord.y);
-		}
-		else {
-			pair_coord_1 = (int2)(out_coord.x, 2 * out_coord.y);
-			pair_coord_2 = (int2)(pair_coord_1.x, pair_coord_1.y + 1);
-			out_coord_2 = (int2)(out_coord.x, out_coord.y + cur_size.y);
-		}
-
-		float4 first_val = read_imagef(src, sampler, pair_coord_1);
-		float4 second_val = read_imagef(src, sampler, pair_coord_2);
-
-		float4 sum_half = (first_val + second_val) / sqrt_2;
-		float4 diff_half = (first_val - second_val) / sqrt_2;
-
-		write_imagef(dst, out_coord, sum_half);
-		write_imagef(dst, out_coord_2, diff_half);
+	if (direction == WAVELET_FORWARD) {
+		out_x[0] = get_global_id(0);
+		out_x[1] = get_global_id(0) + cur_sz.x;
+		in_x[0] = 2 * out_x[0];
+		in_x[1] = 2 * out_x[0] + 1;
 	}
+	else {
+		in_x[0] = get_global_id(0);
+		in_x[1] = get_global_id(0) + cur_sz.x;
+		out_x[0] = 2 * in_x[0];
+		out_x[1] = 2 * in_x[0] + 1;
+	}
+
+	float4 first_val = read_imagef(src, sampler, (int2)(in_x[0], y));
+	float4 second_val = read_imagef(src, sampler, (int2)(in_x[1], y));
+	write_imagef(dst, (int2)(out_x[0], y), (first_val + second_val) / sqrt_2);
+	write_imagef(dst, (int2)(out_x[1], y), (first_val - second_val) / sqrt_2);
 }
 
-__kernel void soft_threshold(__read_only image2d_t src, __global char* buf,
-	__write_only image2d_t dst, sampler_t sampler, int2 out_size, int with_gamma, float threshold) {
+__kernel void vertical_haar(__read_only image2d_t src, sampler_t sampler,
+	__write_only image2d_t dst, int2 cur_sz, int direction) {
 
-	int2 out_coord = (int2) (get_global_id(0), get_global_id(1));
-	if (out_coord.x < out_size.x && out_coord.y < out_size.y) {
-		float4 in_val = read_imagef(src, sampler, out_coord);
-		float4 sign = (float4)(SIGN(in_val.x), SIGN(in_val.y), SIGN(in_val.z), 0.0f);
-		float4 out_val = sign * fmax((float4)(0.0f), sign * in_val - (float4)(threshold));
-		write_imagef(dst, out_coord, out_val);
+	int in_y[2], out_y[2];
+	int x = get_global_id(0);
+
+	if (direction == WAVELET_FORWARD) {
+		out_y[0] = get_global_id(1);
+		out_y[1] = get_global_id(1) + cur_sz.y;
+		in_y[0] = 2 * out_y[0];
+		in_y[1] = 2 * out_y[0] + 1;
 	}
+	else {
+		in_y[0] = get_global_id(1);
+		in_y[1] = get_global_id(1) + cur_sz.y;
+		out_y[0] = 2 * in_y[0];
+		out_y[1] = 2 * in_y[0] + 1;
+	}
+
+	float4 first_val = read_imagef(src, sampler, (int2)(x, in_y[0]));
+	float4 second_val = read_imagef(src, sampler, (int2)(x, in_y[1]));
+	write_imagef(dst, (int2)(x, out_y[0]), (first_val + second_val) / sqrt_2);
+	write_imagef(dst, (int2)(x, out_y[1]), (first_val - second_val) / sqrt_2);
 }
 
-__kernel void inverse_haar(__read_only image2d_t src,
-	__write_only image2d_t dst, sampler_t sampler, int2 cur_size, int dim) {
 
-	int2 in_coord = (int2) (get_global_id(0), get_global_id(1));
-	if (in_coord.x < cur_size.x && in_coord.y < cur_size.y) {
+__kernel void soft_threshold(__read_only image2d_t src, sampler_t sampler,
+	__write_only image2d_t dst, float threshold) {
 
-		int2 pair_coord_1, pair_coord_2, in_coord_2;
-		if (dim == WAVELET_HORIZONTAL) {
-			pair_coord_1 = (int2)(2 * in_coord.x, in_coord.y);
-			pair_coord_2 = (int2)(pair_coord_1.x + 1, pair_coord_1.y);
-			in_coord_2 = (int2)(in_coord.x + cur_size.x, in_coord.y);
-		}
-		else {
-			pair_coord_1 = (int2)(in_coord.x, 2 * in_coord.y);
-			pair_coord_2 = (int2)(pair_coord_1.x, pair_coord_1.y + 1);
-			in_coord_2 = (int2)(in_coord.x, in_coord.y + cur_size.y);
-		}
-
-		float4 first_val = read_imagef(src, sampler, in_coord);
-		float4 second_val = read_imagef(src, sampler, in_coord_2);
-
-		float4 sum_half = (first_val + second_val) / sqrt_2;
-		float4 diff_half = (first_val - second_val) / sqrt_2;
-
-		write_imagef(dst, pair_coord_1, sum_half);
-		write_imagef(dst, pair_coord_2, diff_half);
-	}
+	int2 cd = (int2)(get_global_id(0), get_global_id(1));
+	float4 in_val = read_imagef(src, sampler, cd);
+	float4 sign = (float4)(SIGN(in_val.x), SIGN(in_val.y), SIGN(in_val.z), SIGN(in_val.w));
+	write_imagef(dst, cd, sign * fmax((float4)(0.0f), sign * in_val - (float4)(threshold)));
 }

@@ -4,94 +4,65 @@
 #define YCBCR_CONVERTER 2
 #define CIE_CONVERTER -1
 
-converser::converser(cl_context context, cl_command_queue queue, 
-	functions* conversers) : executor(context, queue, conversers) {}
+converser::converser(hardware* env, functions* conversers) : executor(env, conversers) {}
 
-im_ptr converser::run(const std::string& from_cs, const std::string& to_cs, const im_object& src, int write_mode) {
-	if (from_cs == "srgb") { return from_srgb(to_cs, src, write_mode); }
-	else if (to_cs == "srgb") { return to_srgb(from_cs, src, write_mode); }
-	else { return from_srgb(to_cs, *to_srgb(from_cs, src), write_mode); }
-}
+std::unordered_map<std::string, std::set<std::string>> converser::conversions = {
+	{"srgb", {"ycc601", "ycc709", "ycc2020", "hsl", "hsv", "ciexyz"}},
+	{"ycc601", {"srgb"}}, {"ycc709", {"srgb"}}, {"ycc2020", {"srgb"}},
+	{"hsl", {"srgb", "hsv"}}, {"hsv", {"srgb", "hsl"}},
+	{"ciexyz", {"srgb", "cielab"}}, {"cielab", {"ciexyz"}}
+};
 
-im_ptr converser::from_srgb(const std::string& colour_space, const im_object& src, int write_mode) {
-	cl_kernel kern; int func = 0; float kr, kg, kb;
-	if (colour_space == "hsv") {
-		func = HSx_CONVERTER;  
-		kern = kernels->at("srgb_to_hsv");
-	}
-	else if (colour_space == "hsl") {
-		func = HSx_CONVERTER;  
-		kern = kernels->at("srgb_to_hsl");
-	}
-	else if (colour_space == "ycc709") {
-		func = YCBCR_CONVERTER; 
-		kern = kernels->at("srgb_to_ycbcr");
-		kr = 0.2126f, kg = 0.7152f, kb = 0.0722f;
-	}
-	else if (colour_space == "ycc601") {
-		func = YCBCR_CONVERTER;  
-		kern = kernels->at("srgb_to_ycbcr");
-		kr = 0.299f, kg = 0.587f, kb = 0.114f;
-	}
-	else if (colour_space == "ycc2020") {
-		func = YCBCR_CONVERTER;
-		kern = kernels->at("srgb_to_ycbcr");
-		kr = 0.2627f, kg = 0.678f, kb = 0.0593f;
-	}
-	else if (colour_space == "ciexyz") {
-		func = CIE_CONVERTER; 
-		kern = kernels->at("srgb_to_ciexyz");
-	}
-	else { throw std::runtime_error("Unknown colour space " + colour_space); }
+std::unordered_map<std::string, cl_float3> converser::ycc_params = {
+	{"ycc601", { 0.299f, 0.587f, 0.114f }},
+	{"ycc709", { 0.2126f, 0.7152f, 0.0722f }},
+	{"ycc2020", { 0.2627f, 0.678f, 0.0593f }},
+};
 
-	im_ptr dst = std::make_shared<im_object>(src.size, context, queue, write_mode);
-	set_common_args(kern, src, *dst, write_mode);
-	if (func == YCBCR_CONVERTER) { set_ycc_args(kern, &kr, &kg, &kb); }
-	run_blocking(kern, src.size);
+im_ptr converser::run(col_pair colours, im_ptr& src) {
+	auto it_src = conversions.find(colours.first);
+	if (it_src == conversions.end()) { 
+		std::string error_message = "Unknown input colour space: "
+			+ colours.first + "\nAvaliable:";
+		for (const auto& x : conversions) { 
+			error_message.append(" ").append(x.first);
+		}
+		throw std::runtime_error(error_message);
+	}
+	auto it_dst = it_src->second.find(colours.second);
+	if (it_dst == it_src->second.end()) {
+		std::string error_message = "Unknown output colour space: "
+			+ colours.second + "\nAvaliable:";
+		for (const auto& x : it_src->second) { 
+			error_message.append(" ").append(x);
+		}
+		throw std::runtime_error(error_message);
+	}
+
+	bool set_extra_args = false;
+	auto ycc_it = ycc_params.find(colours.first);
+	if (ycc_it == ycc_params.end()) {
+		ycc_it = ycc_params.find(colours.second);
+		if (ycc_it != ycc_params.end()) {
+			set_extra_args = true;
+			colours.second = "ycbcr";
+		}
+	}
+	else {
+		set_extra_args = true;
+		colours.first = "ycbcr";
+	}
+	cl_kernel kern = kernels->at(colours.first + "_to_" + colours.second);
+	im_ptr dst = std::make_shared<im_object>(src->size, env);
+	set_args(kern, src, dst);
+	if (set_extra_args) { clSetKernelArg(kern, 3, sizeof(cl_float3), &ycc_it->second); }
+	run_blocking(kern, src->size);
 	return std::move(dst);
 }
 
-im_ptr converser::to_srgb(const std::string& colour_space, const im_object& src, int write_mode) {
-	cl_kernel kern; int func = 0; float kr, kg, kb;
-	if (colour_space == "hsv") {
-		func = HSx_CONVERTER; 
-		kern = kernels->at("hsv_to_srgb");
-	}
-	else if (colour_space == "hsl") {
-		func = HSx_CONVERTER; 
-		kern = kernels->at("hsl_to_srgb");
-	}
-	else if (colour_space == "ycc709") {
-		func = YCBCR_CONVERTER;
-		kern = kernels->at("ycbcr_to_srgb");
-		kr = 0.2126f, kg = 0.7152f, kb = 0.0722f;
-	}
-	else if (colour_space == "ycc601") {
-		func = YCBCR_CONVERTER; 
-		kern = kernels->at("ycbcr_to_srgb");
-		kr = 0.299f, kg = 0.587f, kb = 0.114f;
-	}
-	else if (colour_space == "ycc2020") {
-		func = YCBCR_CONVERTER;
-		kern = kernels->at("ycbcr_to_srgb");
-		kr = 0.2627f, kg = 0.678f, kb = 0.0593f;
-	}
-	else if (colour_space == "ciexyz") {
-		func = CIE_CONVERTER; 
-		kern = kernels->at("ciexyz_to_srgb");
-	}
-	else { throw std::runtime_error("Unknown colour space " + colour_space); }
-
-	im_ptr dst = std::make_shared<im_object>(src.size, context, queue, write_mode);
-	set_common_args(kern, src, *dst, write_mode);
-	if (func == YCBCR_CONVERTER) { set_ycc_args(kern, &kr, &kg, &kb); }
-	run_blocking(kern, src.size);
-	return std::move(dst);
-}
-
-void converser::set_ycc_args(cl_kernel kern, float* kr, float* kg, float* kb) {
-	cl_int ret_code = clSetKernelArg(kern, 6, sizeof(float), kr);
-	ret_code |= clSetKernelArg(kern, 7, sizeof(float), kg);
-	ret_code |= clSetKernelArg(kern, 8, sizeof(float), kb);
-	util::assert_success(ret_code, "Failed to set ycc params");
+void converser::set_args(cl_kernel kern, im_ptr& src, im_ptr& dst) {
+	cl_sampler sampler = env->samplers.at({ CL_ADDRESS_NONE, CL_FILTER_NEAREST });
+	clSetKernelArg(kern, 0, sizeof(cl_mem), &src->cl_storage);
+	clSetKernelArg(kern, 1, sizeof(cl_sampler), &sampler);
+	clSetKernelArg(kern, 2, sizeof(cl_mem), &dst->cl_storage);
 }

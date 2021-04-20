@@ -211,7 +211,6 @@
     <ClCompile Include="filter.cpp" />
     <ClCompile Include="hardware.cpp" />
     <ClCompile Include="im_object.cpp" />
-    <ClCompile Include="im_values.cpp" />
     <ClCompile Include="io_manager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="rotator.cpp" />
@@ -225,6 +224,7 @@
     <None Include="filter.cl" />
     <None Include="converser.cl" />
     <None Include="rotator.cl" />
+    <None Include="utils.cl" />
     <None Include="wavelet.cl" />
     <None Include="zoomer.cl" />
   </ItemGroup>
@@ -234,7 +234,6 @@
     <ClInclude Include="hardware.h" />
     <ClInclude Include="im_executors.h" />
     <ClInclude Include="im_object.h" />
-    <ClInclude Include="im_values.h" />
     <ClInclude Include="io_manager.h" />
     <ClInclude Include="util.h" />
   </ItemGroup>

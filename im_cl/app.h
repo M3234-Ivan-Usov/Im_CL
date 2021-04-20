@@ -8,15 +8,12 @@
 #include<type_traits>
 #include<unordered_map>
 
-using load_fun = im_ptr(*) (cl_context, cl_command_queue, std::string, bool);
-using write_fun = void (*) (im_object&, std::string);
+using load_fun = im_ptr(*) (hardware*, const std::string&, int);
+using write_fun = void (*) (im_ptr&, const std::string&, int);
 
 struct app {
-
 	/* OpenCL environment */
 	hardware env;
-	cl_context context;
-	cl_command_queue queue;
 
 	/* Gather all program objects into one vector */
 	std::vector<cl_program> prog_objects;
@@ -33,14 +30,14 @@ struct app {
 	contraster* contraster_ptr;
 	
 
-	app(size_t plat_id, size_t dev_id);
+	app(size_t plat_id, size_t dev_id, size_t free_storage = 0);
 	void env_info();
 
 	/* Given filename, creates ready for use read-only im_object */
-	im_ptr get_im(std::string filename, bool convert_to_linear = true);
+	im_ptr get_im(const std::string& filename, int gamma = GAMMA_CORRECTION_ON);
 
 	/* Puts im_object.host_ptr into file */
-	void put_im(std::string filename, im_object& im);
+	void put_im(const std::string& filename, im_ptr& im, int inverse_gamma = GAMMA_CORRECTION_ON);
 
 	~app();
 
